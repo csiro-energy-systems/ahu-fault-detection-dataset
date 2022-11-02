@@ -1,0 +1,32 @@
+# For PRs, build the docker container, run tests, coverage and build doc and wheel.
+name: Docker Unit Tests
+on: [ push, workflow_dispatch ]
+
+
+env:
+  # Make sure these secrets are set in this git repo or organisation settings:
+  # Private package index credentials, for installing and publishing to the private pypi index (see readme)
+  PUBLISH_URL: ${{secrets.PRIVATE_PYPI_PUBLISH_URL}}
+  PUBLISH_USER: ${{secrets.PRIVATE_PYPI_PUBLISH_USER}}
+  PUBLISH_PASSWORD: ${{secrets.PRIVATE_PYPI_PUBLISH_PASSWORD}}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: Create .env file
+        run: |
+          echo "PUBLISH_URL=${{ env.PUBLISH_URL }}" >> .env
+          echo "PUBLISH_USER=${{ env.PUBLISH_USER }}" >> .env
+          echo "PUBLISH_PASSWORD=${{ env.PUBLISH_PASSWORD }}" >> .env
+
+      - name: Docker-compose build
+        run: docker-compose build
+
+      - name: Test, Coverage, Docs
+        run: docker-compose run test
+
+

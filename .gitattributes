@@ -1,0 +1,5 @@
+*       text eol=lf autocrlf=false
+*.bat   text eol=crlf autocrlf=false
+*.cmd   text eol=crlf autocrlf=false
+*.ps1   text eol=crlf autocrlf=false
+data/*.parquet filter=lfs diff=lfs merge=lfs -text
