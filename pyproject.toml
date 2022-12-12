@@ -19,6 +19,7 @@ plotly = "^5.11.0"
 tqdm = "^4.64.1"
 pyarrow = "^10.0.0"
 openpyxl = "^3.0.10"
+pandasql = "^0.7.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
