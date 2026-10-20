@@ -14,8 +14,8 @@ env:
   PUBLISH_USER: ${{secrets.PRIVATE_PYPI_PUBLISH_USER}}
   PUBLISH_PASSWORD: ${{secrets.PRIVATE_PYPI_PUBLISH_PASSWORD}}
 
-  PYTHON_VERSION: 3.9.13
-  POETRY_VERSION: 1.2.1
+  PYTHON_VERSION: "3.9"
+  POETRY_VERSION: 1.8.5
 
 jobs:
   test:
@@ -28,7 +28,7 @@ jobs:
     steps:
       # check-out repo and set-up python
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           lfs: true
 
@@ -38,13 +38,13 @@ jobs:
 
       - name: Set up python
         id: setup-python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       # install & configure poetry
       - name: Install Poetry
-        uses: snok/install-poetry@v1.3.1
+        uses: snok/install-poetry@v1
         with:
           version: ${{ env.POETRY_VERSION }}
           virtualenvs-create: true
@@ -54,7 +54,7 @@ jobs:
       # load cached venv if cache exists
       - name: Load cached venv
         id: cached-poetry-dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         if: runner.os != 'Windows' # caching breaks on windows, known bug
         with:
           path: .venv

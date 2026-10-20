@@ -32,8 +32,6 @@ The operation of the input/sensor proxy points and the output/setpoint proxies i
   **without** the BMS or fault detector observing the fault directly. Note that these actuators had no position feedback sensor, so the output proxy
   values _are_ the hardware position.
 
-So the
-
 ![BMS Changes](docs/BMS.Changes.png)
 
 The actual fault type and magnitude was randomised by custom fault generation software. A summary of the faults generated is below.
