@@ -97,7 +97,7 @@ If you use this dataset in your research or publications, please cite the follow
 
 `Guo, Ying; Wall, Josh; Li, Jiaming; West, Sam. Intelligent Model Based Fault Detection and Diagnosis for HVAC System Using Statistical Machine Learning Methods. In: ASHRAE 2013 Winter Conference; January 26 - 30, 2013; Dallas, USA. ASHRAE; 2013. 119-124. http://hdl.handle.net/102.100.100/98252?index=1`
 
-See [here](http://hdl.handle.net/102.100.100/98252)
+See [here]([http://hdl.handle.net/102.100.100/98252](http://hdl.handle.net/102.100.100/98252?index=1))
 or [here](https://www.researchgate.net/publication/262640090_Intelligent_Model_Based_Fault_Detection_and_Diagnosis_for_HVAC_System_Using_Statistical_Machine_Learning_Methods)
 for the paper.
 

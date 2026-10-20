@@ -22,7 +22,7 @@ repos:
 
   # isort organises python imports
   - repo: https://github.com/PyCQA/isort
-    rev: 5.4.2
+    rev: 5.13.2
     hooks:
       - id: isort
 
@@ -41,7 +41,6 @@ repos:
       - id: mypy
         files: src
         exclude: src/tests
-        additional_dependencies: [ types-all ]
         args: ['--show-error-codes']
 
   # Bandit is a tool for finding common security issues in Python code. See https://github.com/PyCQA/bandit
