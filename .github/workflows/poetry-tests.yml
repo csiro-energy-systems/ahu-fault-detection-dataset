@@ -16,6 +16,8 @@ env:
 
   PYTHON_VERSION: "3.9"
   POETRY_VERSION: 1.8.5
+  # Create the venv without the newest setuptools, which can't build atomicwrites against the locked older packaging; the lock's setuptools is installed instead
+  POETRY_VIRTUALENVS_OPTIONS_NO_SETUPTOOLS: true
 
 jobs:
   test:
