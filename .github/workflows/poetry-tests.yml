@@ -14,8 +14,10 @@ env:
   PUBLISH_USER: ${{secrets.PRIVATE_PYPI_PUBLISH_USER}}
   PUBLISH_PASSWORD: ${{secrets.PRIVATE_PYPI_PUBLISH_PASSWORD}}
 
-  PYTHON_VERSION: 3.9.13
-  POETRY_VERSION: 1.2.1
+  PYTHON_VERSION: "3.9"
+  POETRY_VERSION: 1.8.5
+  # Create the venv without the newest setuptools, which can't build atomicwrites against the locked older packaging; the lock's setuptools is installed instead
+  POETRY_VIRTUALENVS_OPTIONS_NO_SETUPTOOLS: true
 
 jobs:
   test:
@@ -24,11 +26,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, windows-latest ] # macOS-latest - disabled by default because it's charged at 10x the cost
+    defaults:
+      run:
+        shell: bash # install-poetry only puts poetry on the PATH for bash on Windows runners
 
     steps:
       # check-out repo and set-up python
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           lfs: true
 
@@ -38,13 +43,13 @@ jobs:
 
       - name: Set up python
         id: setup-python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       # install & configure poetry
       - name: Install Poetry
-        uses: snok/install-poetry@v1.3.1
+        uses: snok/install-poetry@v1
         with:
           version: ${{ env.POETRY_VERSION }}
           virtualenvs-create: true
@@ -54,7 +59,7 @@ jobs:
       # load cached venv if cache exists
       - name: Load cached venv
         id: cached-poetry-dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         if: runner.os != 'Windows' # caching breaks on windows, known bug
         with:
           path: .venv
@@ -73,18 +78,10 @@ jobs:
         run: poetry install --no-interaction --no-root --sync
 
       # run test suite
-      - name: Run tests (linux/mac)
-        if: runner.os != 'Windows'
+      - name: Run tests
         run: |
           poetry run pre-commit run --color never
-          poetry run scripts/test.sh
-
-      # run test suite
-      - name: Run tests (windows)
-        if: runner.os == 'Windows'
-        run: |
-          poetry run pre-commit run --color never
-          poetry run scripts\test.cmd
+          bash scripts/test.sh
       
           
 

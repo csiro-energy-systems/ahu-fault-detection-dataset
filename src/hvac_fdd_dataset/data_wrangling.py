@@ -8,6 +8,7 @@ from scipy.io import loadmat
 from tqdm import tqdm
 
 from config import config
+from hvac_fdd_dataset.fault_generator import experiments_missing_from, read_fault_log, read_proxy_runs
 
 logger.configure(**config.logging)
 while len(list(Path(".").glob("pyproject.toml"))) == 0:
@@ -52,6 +53,72 @@ def wrangle_data():
         df.index = df.index.round('1s')
         df.columns = pd.io.parsers.base_parser.ParserBase({'names': df.columns, 'usecols': None})._maybe_dedup_names(df.columns)
         df.to_parquet(f"data/{name}.parquet")
+
+
+def wrangle_proxy_points(xyc_dir: Path):
+    """
+    Saves the proxy-point values recorded in the fault generator's chart files to ``data/proxy_points.parquet``.
+    For internal CSIRO use only.
+
+    :param xyc_dir: folder of the fault generator's ``FaultGen *.xyc`` chart files.
+    """
+    read_proxy_runs(xyc_dir).to_parquet("data/proxy_points.parquet", index=False)
+
+
+def add_logged_experiments(log_files: list, start_year: int):
+    """
+    Appends fault experiments recorded in fault-generator logs but missing from ``data/fault-experiments.parquet``.
+    Run after ``wrangle_data()``, which rewrites that file from the spreadsheet. For internal CSIRO use only.
+
+    :param log_files: the fault generator's ``log4jOutput.txt`` files.
+    :param start_year: year in which the logs start, for events logged before their first full date.
+    """
+    gt = pd.read_parquet("data/fault-experiments.parquet")
+    logged = pd.concat([read_fault_log(f, start_year) for f in log_files], ignore_index=True)
+    missing = experiments_missing_from(gt, logged.drop_duplicates(["AHU", "Fault Type", "Start Datetime"]))
+    missing.index = range(gt.index.max() + 1, gt.index.max() + 1 + len(missing))
+    logger.info(f"Appending {len(missing)} logged experiments missing from the ground truth")
+    pd.concat([gt, missing]).to_parquet("data/fault-experiments.parquet", coerce_timestamps="us", allow_truncated_timestamps=True)
+
+
+#: Hand-entered fan belt slip experiments dated 17 Sep 2013 ran on 16 Sep 2013, according to the fault generator's log.
+MISDATED_FAN_SLIP = (pd.Timestamp("2013-09-17"), pd.Timestamp("2013-09-16"))
+
+#: The fault generator set AHU 9's RA damper proxy to 100% at this time, then a hand-entered override of the same proxy replaced it.
+AHU9_RA_DAMPER_SET = pd.Timestamp("2013-09-18 09:04:35")
+
+
+def correct_hand_entered_experiments():
+    """
+    Corrects hand-entered rows of ``data/fault-experiments.parquet`` that the fault generator's log contradicts or leaves incomplete.
+    Run after ``add_logged_experiments()``. For internal CSIRO use only.
+    """
+    gt = pd.read_parquet("data/fault-experiments.parquet")
+    recovered = "(recovered from fault-generator log)"
+    slip = gt[gt["Fault Type"] == "SA Fan Belt Slip"]
+    is_logged = slip["Fault Description"].str.endswith(recovered, na=False)
+    hand = slip[~is_logged & (slip["Start Datetime"].dt.normalize() == MISDATED_FAN_SLIP[0])]
+    logged = slip[is_logged & (slip["Start Datetime"].dt.normalize() == MISDATED_FAN_SLIP[1])]
+    for i, row in hand.iterrows():
+        match = logged[(logged.AHU == row.AHU) & (logged.Magnitude.abs() == abs(row.Magnitude))]
+        if match.empty:  # set by hand in the BMS rather than by the fault generator, so the log can't date it
+            continue
+        if len(match) > 1:
+            raise ValueError(f"Several logged fan belt slips match hand-entered row {i}")
+        times = ["Start Datetime", "End Datetime", "Duration (h:mm)"]
+        gt.loc[i, times] = match[times].iloc[0].values
+        gt.loc[i, "Fault Description"] = match["Fault Description"].iloc[0].replace(recovered, "(times from fault-generator log)")
+        gt = gt.drop(match.index)
+
+    if not (gt["Start Datetime"] == AHU9_RA_DAMPER_SET).any():
+        same_proxy = gt[(gt.AHU == 9) & (gt["Fault Type"] == "RA Damper Stuck Open")]
+        end = same_proxy.loc[same_proxy["Start Datetime"] > AHU9_RA_DAMPER_SET, "Start Datetime"].min()
+        if pd.isna(end) or end.normalize() != AHU9_RA_DAMPER_SET.normalize():
+            raise ValueError(f"No hand-entered AHU 9 RA damper fault follows {AHU9_RA_DAMPER_SET} on the same day")
+        description = f"{AHU9_RA_DAMPER_SET:%a %b %d %H:%M:%S EST %Y} - set - 100.0, ended by the next hand-entered fault {recovered}"
+        gt.loc[gt.index.max() + 1] = [9, (pd.Timestamp(0) + (end - AHU9_RA_DAMPER_SET)).time(), 100.0, "RA Damper Stuck Open",
+                                      "RA Damper Stuck Open 100.0", description, AHU9_RA_DAMPER_SET, end]
+    gt.to_parquet("data/fault-experiments.parquet", coerce_timestamps="us", allow_truncated_timestamps=True)
 
 
 def join_ground_truth():
