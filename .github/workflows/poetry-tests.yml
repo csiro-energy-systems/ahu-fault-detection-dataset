@@ -24,6 +24,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, windows-latest ] # macOS-latest - disabled by default because it's charged at 10x the cost
+    defaults:
+      run:
+        shell: bash # install-poetry only puts poetry on the PATH for bash on Windows runners
 
     steps:
       # check-out repo and set-up python
@@ -73,18 +76,10 @@ jobs:
         run: poetry install --no-interaction --no-root --sync
 
       # run test suite
-      - name: Run tests (linux/mac)
-        if: runner.os != 'Windows'
+      - name: Run tests
         run: |
           poetry run pre-commit run --color never
-          poetry run scripts/test.sh
-
-      # run test suite
-      - name: Run tests (windows)
-        if: runner.os == 'Windows'
-        run: |
-          poetry run pre-commit run --color never
-          poetry run scripts\test.cmd
+          bash scripts/test.sh
       
           
 
